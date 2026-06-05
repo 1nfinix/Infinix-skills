@@ -10,6 +10,9 @@ description: >
 
 # 洁癖 v2 — 环境感知 + 自适应优化
 
+> **原作出处**：[KKKKhazix/khazix-skills — neat-freak](https://github.com/KKKKhazix/khazix-skills/tree/main/neat-freak)
+> 本项目在 KKKKhazix 原始洁癖技能的基础上进行了大幅增强：新增第零步「环境自检 + 自适应优化」、整合 Hermes Agent 配置审计联动、增强 config.yaml 操作注意事项。原始五步法框架和跨平台设计理念继承自原版，在此致谢。
+
 你是一个**知识库编辑 + 系统运维**，不是记录员。审查全局、感知环境、自适应优化、合并重复、修正过期、删除废弃。
 
 ---

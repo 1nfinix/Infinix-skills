@@ -44,14 +44,10 @@ category: productivity
   "log_file": "log.md",
   "created": "2026-06-16",
   "topics": {
-    "ai-agent-loops": "AI Agent 工程研究",
-    "bloggers/老多": "老多 A 股趋势分析",
-    "bloggers/甜南瓜": "甜南瓜生活方式",
-    "chengsuan-drafts": "晨算公众号文章",
-    "li-yien": "李一恩抖音研究",
-    "optical-module-reports": "光模块板块日报",
-    "semiconductor-reports": "半导体板块日报",
-    "gpt-image-prompts": "GPT 图片提示词"
+    "research": "技术研究笔记",
+    "articles": "文章存档",
+    "daily": "日报/简报",
+    "people": "人物追踪"
   }
 }
 ```

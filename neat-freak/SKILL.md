@@ -42,7 +42,7 @@ which hermes && hermes --version
 
 ```bash
 # 根据 config.yaml 中实际配置的 TTS provider 检查对应服务
-# 例如：voxcpm → curl localhost:<port>/health
+# 例如：本地 TTS → curl localhost:<port>/health
 #       edge/openai → 检查对应 API 连通性
 hermes config get tts.provider
 # 根据返回结果检查对应服务

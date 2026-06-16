@@ -8,10 +8,10 @@ description: >
   Bare "整理" / "tidy" with prior dev context counts.
 ---
 
-# 洁癖 v2 — 环境感知 + 自适应优化
+# 洁癖 v3 — 环境感知 + 自适应优化
 
 > **原作出处**：[KKKKhazix/khazix-skills — neat-freak](https://github.com/KKKKhazix/khazix-skills/tree/main/neat-freak)
-> 本项目在 KKKKhazix 原始洁癖技能的基础上进行了大幅增强：新增第零步「环境自检 + 自适应优化」、整合 Hermes Agent 配置审计联动、增强 config.yaml 操作注意事项。原始五步法框架和跨平台设计理念继承自原版，在此致谢。
+> 本项目在 KKKKhazix 原始洁癖技能的基础上增强：新增第零步「环境自检 + 自适应优化」、整合 Hermes 配置审计联动、自适应环境发现。原始五步法框架和跨平台设计理念继承自原版，在此致谢。
 
 你是一个**知识库编辑 + 系统运维**，不是记录员。审查全局、感知环境、自适应优化、合并重复、修正过期、删除废弃。
 
@@ -24,43 +24,32 @@ description: >
 ### 0.1 系统基础信息
 
 ```bash
-# OS 类型
 uname -s                    # Linux / Darwin → 决定路径风格
-
-# 磁盘空间
 df -h / | tail -1           # 使用率 > 80% 触发清理
-
-# 内存
 free -h | grep Mem          # available < 500MB 触发降配
 ```
 
 ### 0.2 运行时环境
 
 ```bash
-# Python
-python3 --version           # 记录主版本（3.11 / 3.12）
-which uv && uv --version    # 包管理器
-
-# Node.js
+python3 --version
+which uv && uv --version
 which node && node --version
-which pnpm && pnpm --version
-which bun && bun --version
-
-# 关键 CLI 工具（被 skill 引用的）
-which repomix && repomix --version
-which ollama && ollama --version
 which hermes && hermes --version
 ```
 
 ### 0.3 服务健康
 
 ```bash
-# VoxCPM TTS（如果配置了）
-curl -s --max-time 3 http://localhost:8080/health 2>/dev/null && echo "TTS OK" || echo "TTS DOWN"
+# 根据 config.yaml 中实际配置的 TTS provider 检查对应服务
+# 例如：voxcpm → curl localhost:<port>/health
+#       edge/openai → 检查对应 API 连通性
+hermes config get tts.provider
+# 根据返回结果检查对应服务
 
 # API 连通性抽查（只测 config.yaml 中实际配置的 provider）
-curl -s --max-time 5 https://api.deepseek.com/v1/models > /dev/null && echo "DeepSeek OK" || echo "DeepSeek FAIL"
-# 根据 config.yaml 补充其他 provider 的连通性检查
+hermes config get model.provider
+# 根据返回的 provider 名检查对应 API 端点
 ```
 
 ### 0.4 环境 → 自适应优化
@@ -69,21 +58,20 @@ curl -s --max-time 5 https://api.deepseek.com/v1/models > /dev/null && echo "Dee
 
 | 检测到的环境特征 | 自适应操作 |
 |-----------------|-----------|
-| 磁盘 > 80% | `hermes config set checkpoints.max_disk_mb 200`；清理 audio_cache、image_cache |
-| 内存 < 500MB | 清理 heavy 后台进程（如 ollama）；建议降配并发 |
-| Python 版本变化 | 更新 memory 中记录的版本号；检查 venv 路径是否需要重建 |
+| 磁盘 > 80% | 降低 checkpoints 上限；清理 audio_cache、image_cache |
+| 内存 < 500MB | 清理 heavy 后台进程；建议降配并发 |
+| Python 版本变化 | 更新 memory 中记录的版本号；检查 venv 路径 |
 | 关键 CLI 缺失 | 在 memory 中记录；若 skill 引用该工具 → 加注「需安装 xxx」 |
-| TTS 服务 DOWN | 尝试重启 `~/voxcpm-models/start_server.sh`；失败则记录到 memory |
+| TTS 服务 DOWN | 尝试重启对应服务；失败则记录到 memory |
 | API 连通性 FAIL | 检查 .env 中的 API Key；若 provider 为 fallback 链成员 → 标记降级风险 |
 | Hermes 版本升级 | 触发 config-upgrade 子流程（检查新配置项、废弃项） |
-| Ollama 空跑（无模型在用）| `systemctl stop ollama` 释放内存 |
-| `providers: {}` 为空但 fallback 引用了 provider | `hermes config set providers.<name>.api_key` 补全 provider 定义 |
+| `providers: {}` 为空但 fallback 引用了 provider | 补全 provider 定义 |
 
 ### 0.5 环境感知结果写入 memory
 
 将关键环境特征以简洁条目写入 memory，例如：
 ```
-服务器环境：Linux (6.17.0-1013-aws)，Python 3.11.15，uv 已安装，Node 已安装，pnpm 已安装，Bun 1.3.14
+服务器环境：Linux (kernel-version)，Python 3.x，已安装工具列表
 ```
 
 ---
@@ -94,8 +82,8 @@ curl -s --max-time 5 https://api.deepseek.com/v1/models > /dev/null && echo "Dee
 
 1. **Hermes skills**：`find ~/.hermes/skills -maxdepth 2 -name "SKILL.md" | wc -l` — 数量合理吗？有空的吗？
 2. **Cron jobs**：`cronjob action='list'` — 每个 job 的 skill 真实存在吗？last_run_at 有 null 吗？
-3. **临时文件**：`ls /tmp/*.md /tmp/*.html /tmp/*.json /tmp/*.png 2>/dev/null` — 本会话遗留？
-4. **vault-sync**：`ls ~/vault-sync/*/` — 有没有该归档的？
+3. **临时文件**：`ls /tmp/*.md /tmp/*.html /tmp/*.png 2>/dev/null` — 本会话遗留？
+4. **知识库目录**：扫描用户常用的知识库路径（如 vault-sync/、wiki/、notes/）— 有没有该归档的？
 5. **记忆**：扫一遍系统提示里的 MEMORY + USER PROFILE。哪些过期/重复/可删除？相对时间词转绝对日期了吗？
 6. **对话**：回顾本次会话产出
 7. **config.yaml**：检查是否有 `${ENV_VAR}` 未展开、空 `api_key: ''`、已下架模型引用
@@ -114,7 +102,7 @@ curl -s --max-time 5 https://api.deepseek.com/v1/models > /dev/null && echo "Dee
 | 新建/删除 cron job | cron job 列表 + skill 声明 |
 | 修改配置 | config.yaml + 记忆 |
 | 环境变化（OS/工具/版本） | 路径、命令、skill 引用 → 全链路 |
-| 归档/清理文件 | temp + vault-sync + cron output |
+| 归档/清理文件 | temp + 知识库 + cron output |
 | 记忆过时/重复 | memory add 覆盖 |
 | 项目废弃 | cron + skill + temp + 记忆引用 → 全清 |
 

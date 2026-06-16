@@ -50,7 +50,7 @@ grep "config_version" ~/.hermes/config.yaml || echo "无 config_version 字段"
 
 | 诊断发现 | 修复命令 |
 |---------|---------|
-| `providers: {}` 为空但 fallback 引用了 mimo | `hermes config set providers.mimo.api_key '${XIAOMI_API_KEY}'` |
+| `providers: {}` 为空但 fallback 引用了 mimo | `hermes config set providers.mimo.api_key '$YOUR_API_KEY'` |
 | fallback_model 指向已下架模型 | `hermes config set fallback_model.model 'google/gemini-2.5-flash'` |
 | auxiliary.vision 用 mimo-v2.5（非 omni） | `hermes config set auxiliary.vision.model mimo-v2-omni` |
 | web.backend 与 web.search_backend 不一致 | `hermes config set web.search_backend tavily` |
@@ -76,7 +76,7 @@ hermes config get model.base_url
 echo "=== Fallback 链 ==="
 python3 -c "
 import yaml
-with open('/home/ubuntu/.hermes/config.yaml') as f:
+with open(os.path.expanduser('~/.hermes/config.yaml')) as f:
     c = yaml.safe_load(f)
 for i, fb in enumerate(c.get('fallback_providers', [])):
     print(f'  [{i+1}] {fb.get(\"provider\")} / {fb.get(\"model\")}')
@@ -95,7 +95,7 @@ print(f'  兜底: {c.get(\"fallback_model\", {}).get(\"model\", \"未配置\")}'
 ```bash
 python3 -c "
 import yaml
-with open('/home/ubuntu/.hermes/config.yaml') as f:
+with open(os.path.expanduser('~/.hermes/config.yaml')) as f:
     c = yaml.safe_load(f)
 providers = c.get('providers', {})
 print('已定义的 provider:', list(providers.keys()))
@@ -116,7 +116,7 @@ for name, cfg in providers.items():
 ```bash
 python3 -c "
 import yaml
-with open('/home/ubuntu/.hermes/config.yaml') as f:
+with open(os.path.expanduser('~/.hermes/config.yaml')) as f:
     c = yaml.safe_load(f)
 aux = c.get('auxiliary', {})
 print('=== 辅助模型分布 ===')
@@ -239,7 +239,7 @@ agent.max_turns: 120
 
 | 断裂模式 | 症状 | 自动修复 |
 |---------|------|---------|
-| `providers: {}` 为空但 fallback 引用 mimo | errors.log: `unknown provider 'mimo'` | `hermes config set providers.mimo.api_key '${XIAOMI_API_KEY}'` + `hermes config set providers.mimo.base_url 'https://token-plan-cn.xiaomimimo.com/v1'` |
+| `providers: {}` 为空但 fallback 引用 mimo | errors.log: `unknown provider 'mimo'` | `hermes config set providers.mimo.api_key '$YOUR_API_KEY'` + `hermes config set providers.mimo.base_url '$YOUR_BASE_URL'` |
 | `fallback_model.model` 指向已下架模型 | OpenRouter 404: `No endpoints found for google/gemini-2.0-flash-001` | `hermes config set fallback_model.model 'google/gemini-2.5-flash'` |
 | auxiliary.vision.model = mimo-v2.5（不支持图片） | vision_analyze 返回错误 | `hermes config set auxiliary.vision.model mimo-v2-omni` |
 | `api_key: ''` 空字符串 | HTTP 401 | 替换为 `${ENV_VAR_NAME}` 格式 |
@@ -267,10 +267,10 @@ hermes config set <key> <value>
 # 复杂/批量修改 → terminal + python3
 python3 << 'PYEOF'
 import yaml
-with open('/home/ubuntu/.hermes/config.yaml') as f:
+with open(os.path.expanduser('~/.hermes/config.yaml')) as f:
     c = yaml.safe_load(f)
 # 修改逻辑...
-with open('/home/ubuntu/.hermes/config.yaml', 'w') as f:
+with open(os.path.expanduser('~/.hermes/config.yaml'), 'w') as f:
     yaml.dump(c, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 PYEOF
 ```
@@ -344,7 +344,7 @@ systemctl --user restart hermes-gateway
 
 ### Provider 定义
 - deepseek ✅
-- mimo ✅ (api_key = ${XIAOMI_API_KEY})
+- mimo ✅ (api_key = $YOUR_API_KEY)
 
 ### 辅助模型
 - vision: mimo / mimo-v2-omni ✅

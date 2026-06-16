@@ -1,6 +1,6 @@
 ---
 name: wiki-ingest
-description: 知识库标准摄入流程（Karpathy LLM Wiki 模式）：链接→结构化摘要→更新索引→追加日志。通用框架，需配置 wiki 结构和板块映射。
+description: 知识库标准摄入流程（Karpathy LLM Wiki 模式）。首次运行自动扫描 wiki 结构生成本地配置，之后每次摄入自动更新索引和日志。
 category: productivity
 ---
 
@@ -8,31 +8,67 @@ category: productivity
 
 基于 [Karpathy LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) 模式的通用摄入流程。
 
-## 使用前配置
+**核心设计：零配置启动。** 首次执行时自动扫描知识库目录结构，推断板块映射，生成本地配置文件。之后每次摄入走标准 5 步流程。
 
-用户需先告知 LLM 以下信息（或写入项目 AGENTS.md）：
+---
+
+## 阶段 0：环境发现（首次执行 / 配置缺失时）
+
+### 0.1 定位 wiki 根目录
+
+按优先级探测：
+
+1. 检查是否有 `WIKI_ROOT` 环境变量或本地配置文件
+2. 扫描用户 home 目录下常见 wiki 目录名：`vault-sync/`、`wiki/`、`knowledge/`、`notes/`、`obsidian/`
+3. 找到后确认：`发现知识库在 <path>，包含 N 个子目录。确认使用？`
+
+### 0.2 推断板块映射
+
+扫描 WIKI_ROOT 下所有子目录，根据内容自动推断分类：
 
 ```
-WIKI_ROOT = 知识库根目录（如 ~/vault-sync/）
-INDEX_FILE = 全局索引文件（如 index.md）
-LOG_FILE = 时序日志文件（如 log.md）
-SCHEMA_FILE = 维护规范文件（如 SCHEMA.md）
-
-板块映射（内容类型 → 子目录）：
-  - 研究笔记 → research/
-  - 文章存档 → articles/
-  - ...（按需定义）
+对每个子目录：
+  - 读取其中几个文件的标题/内容，推断主题
+  - 生成板块名（如 "AI研究"、"投资日报"、"人物追踪"）
+  - 记录到本地配置
 ```
 
-LLM 应在首次执行前主动确认以上配置。未配置时默认将内容存入 `WIKI_ROOT/inbox/`，待用户分类。
+### 0.3 生成配置文件
 
-## 触发条件
+在 WIKI_ROOT 下创建 `.wiki-ingest.json`（或追加到已有 SCHEMA.md）：
 
-- 用户分享链接 + "存档"/"保存"/"记录"
-- 用户说"研究下这篇文章"
-- 任何需要存入知识库的外部素材
+```json
+{
+  "wiki_root": "~/vault-sync/",
+  "index_file": "index.md",
+  "log_file": "log.md",
+  "created": "2026-06-16",
+  "topics": {
+    "ai-agent-loops": "AI Agent 工程研究",
+    "bloggers/老多": "老多 A 股趋势分析",
+    "bloggers/甜南瓜": "甜南瓜生活方式",
+    "chengsuan-drafts": "晨算公众号文章",
+    "li-yien": "李一恩抖音研究",
+    "optical-module-reports": "光模块板块日报",
+    "semiconductor-reports": "半导体板块日报",
+    "gpt-image-prompts": "GPT 图片提示词"
+  }
+}
+```
 
-## 流程（5 步）
+### 0.4 检查基础设施
+
+确认 wiki 是否已有标准文件：
+
+- `index.md` — 全局目录（没有则创建）
+- `log.md` — 时序日志（没有则创建）
+- `SCHEMA.md` — 维护规范（没有则提示是否需要）
+
+完成后输出摘要：`wiki 环境就绪：X 个板块，Y 个已有文件。` 然后进入阶段 1。
+
+---
+
+## 阶段 1：标准摄入（5 步）
 
 ### Step 1: 提取内容
 
@@ -69,21 +105,19 @@ web_extract(url)  → 获取 markdown
 
 文件名：`YYYY-MM-DD_作者_主题关键词.md`
 
-### Step 3: 写入对应板块
+### Step 3: 匹配板块 & 写入
 
-根据配置的板块映射，归入对应子目录。无匹配时存入 `inbox/`。
+- 根据阶段 0 生成的 topic 映射匹配最合适的子目录
+- 无明确匹配时存入 `WIKI_ROOT/inbox/`（自动创建）
+- 若新内容类型未在映射中，自动追加新 topic 到配置
 
 ### Step 4: 更新索引
 
-在 `WIKI_ROOT/INDEX_FILE` 对应分类下追加条目：
-
-```
-| [文件名](相对路径) | 一句话摘要 |
-```
+在 `WIKI_ROOT/index.md` 对应分类下追加条目。若 index.md 不存在，以阶段 0 扫描结果为基础自动创建。
 
 ### Step 5: 追加日志
 
-在 `WIKI_ROOT/LOG_FILE` 最前面追加：
+在 `WIKI_ROOT/log.md` 最前面追加：
 
 ```
 ## [日期] ingest | 标题简述
@@ -91,9 +125,22 @@ web_extract(url)  → 获取 markdown
 - 交叉引用：page1, page2
 ```
 
+---
+
 ## 交叉引用
 
-写入时检查新内容是否涉及已有实体（人物/概念/项目），自动补 `[[wiki链接]]`。
+写入时检查新内容是否涉及已有实体（人物/概念/项目），在摘要页底部用 `[[wiki链接]]` 标注关联。
+
+---
+
+## 触发条件
+
+- 用户分享链接 + "存档"/"保存"/"记录"
+- 用户说"研究下这篇文章"
+- "摄入" / "ingest"
+- 任何需要存入知识库的外部素材
+
+---
 
 ## 注意事项
 
@@ -101,3 +148,4 @@ web_extract(url)  → 获取 markdown
 - 文件名不含空格，用 `_` 连接
 - 原始素材不修改（raw sources 只读）
 - 公开发布前做隐私审查
+- 环境发现只需执行一次，之后走阶段 1 快速通道

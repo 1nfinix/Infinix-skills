@@ -1,4 +1,4 @@
-# AI Agent 核心运行规则 v7｜中文运行时版
+# AI Agent 核心运行规则｜中文运行时版
 
 > 用途：直接放入 AI Agent / Agent Skills / Tool Calling / 自动化工作流的 System Prompt 或 Developer Prompt。  
 > 原则：短、硬、可执行；减少解释，优先约束行为。

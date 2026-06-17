@@ -1,4 +1,4 @@
-# AI Agent Core Operating Rules v7｜English Runtime Version
+# AI Agent Core Operating Rules｜English Runtime Version
 
 > Use case: System Prompt or Developer Prompt for AI Agents, Agent Skills, Tool Calling, and automation workflows.  
 > Principle: Short, strict, executable. Minimize explanation; maximize behavioral control.

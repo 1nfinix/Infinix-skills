@@ -1,5 +1,5 @@
-# AI Agent 核心运行规则 v7｜中英文版
-# AI Agent Core Operating Rules v7｜ZH-EN Version
+# AI Agent 核心运行规则｜中英文版
+# AI Agent Core Operating Rules｜ZH-EN Version
 
 > 用途：直接放入 AI Agent / Agent Skills / Tool Calling / 自动化工作流的 System Prompt 或 Developer Prompt。  
 > Use case: System Prompt or Developer Prompt for AI Agents, Agent Skills, Tool Calling, and automation workflows.  
